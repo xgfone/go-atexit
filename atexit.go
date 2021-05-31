@@ -76,6 +76,7 @@ import (
 	"os"
 	"sort"
 	"sync/atomic"
+	"time"
 )
 
 var (
@@ -101,11 +102,22 @@ var priority = int64(99)
 // ExitFunc is used to customize the exit function.
 var ExitFunc = os.Exit
 
+// ExitDelay is used to wait for a delay duration before the program exits.
+var ExitDelay = time.Millisecond * 100
+
 // Wait waits until all the exit functions have finished to be executed.
 func Wait() { <-exitch }
 
 // Exit calls the exit functions in reverse and the program exits with the code.
-func Exit(code int) { Execute(); ExitFunc(code) }
+func Exit(code int) {
+	Execute()
+
+	if ExitDelay > 0 {
+		time.Sleep(ExitDelay)
+	}
+
+	ExitFunc(code)
+}
 
 // RegisterWithPriority registers the exit callback function with the priority,
 // which will be called when calling Exit.
