@@ -153,3 +153,20 @@ func Execute() {
 		close(exitch)
 	}
 }
+
+// Done returns a channel to indicate whether the registered exit funtions
+// have been executed.
+func Done() <-chan struct{} { return exitch }
+
+// Executed reports whether the registered exit funtions have been executed.
+func Executed() (executed bool) {
+	if atomic.LoadUint32(&exited) == 1 {
+		select {
+		case <-exitch:
+			executed = true
+		default:
+		}
+	}
+
+	return
+}
