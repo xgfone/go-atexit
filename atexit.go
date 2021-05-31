@@ -98,11 +98,14 @@ func (fs exitFuncs) Swap(i, j int)      { fs[i], fs[j] = fs[j], fs[i] }
 
 var priority = int64(99)
 
+// ExitFunc is used to customize the exit function.
+var ExitFunc = os.Exit
+
 // Wait waits until all the exit functions have finished to be executed.
 func Wait() { <-exitch }
 
 // Exit calls the exit functions in reverse and the program exits with the code.
-func Exit(code int) { Execute(); os.Exit(code) }
+func Exit(code int) { Execute(); ExitFunc(code) }
 
 // RegisterWithPriority registers the exit callback function with the priority,
 // which will be called when calling Exit.
@@ -119,7 +122,7 @@ func RegisterWithPriority(priority int, callback func()) {
 }
 
 // Register is the same as RegisterWithPriority, but increase the priority
-// starting from 100. For example,
+// beginning with 100. For example,
 //   Register(callback) // ==> RegisterWithPriority(100, callback)
 //   Register(callback) // ==> RegisterWithPriority(101, callback)
 func Register(callback func()) {
