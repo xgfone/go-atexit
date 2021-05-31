@@ -50,6 +50,10 @@ func TestExitFuncs(t *testing.T) {
 func TestRegisterAndExecute(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 
+	if Executed() {
+		t.Errorf("expect unexecuted, but got executed")
+	}
+
 	RegisterWithPriority(1, func() { buf.WriteString("1") })
 	RegisterWithPriority(2, func() { buf.WriteString("2") })
 	RegisterWithPriority(3, func() { buf.WriteString("3") })
@@ -57,6 +61,10 @@ func TestRegisterAndExecute(t *testing.T) {
 	RegisterWithPriority(2, func() { buf.WriteString("5") })
 	RegisterWithPriority(1, func() { buf.WriteString("6") })
 	Execute()
+
+	if !Executed() {
+		t.Errorf("expect executed, but got unexecuted")
+	}
 
 	expect := "435261"
 	if s := buf.String(); s != expect {
