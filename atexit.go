@@ -73,6 +73,7 @@
 package atexit
 
 import (
+	"context"
 	"os"
 	"sort"
 	"sync/atomic"
@@ -80,9 +81,9 @@ import (
 )
 
 var (
-	atexits = make(exitFuncs, 0, 4)
-	exitch  = make(chan struct{}, 1)
-	exited  uint32
+	exited      uint32
+	atexits     = make(exitFuncs, 0, 4)
+	ctx, cancel = context.WithCancel(context.Background())
 )
 
 type exitFunc struct {
@@ -106,7 +107,7 @@ var ExitFunc = os.Exit
 var ExitDelay = time.Millisecond * 100
 
 // Wait waits until all the exit functions have finished to be executed.
-func Wait() { <-exitch }
+func Wait() { <-Done() }
 
 // Exit calls the exit functions in reverse and the program exits with the code.
 func Exit(code int) {
@@ -149,20 +150,23 @@ func Execute() {
 		for _len := len(atexits) - 1; _len >= 0; _len-- {
 			func(f func()) { defer recover(); f() }(atexits[_len].Func)
 		}
-
-		close(exitch)
+		cancel()
 	}
 }
 
+// Context returns the context to indicate whether the registered exit funtions
+// have been executed.
+func Context() context.Context { return ctx }
+
 // Done returns a channel to indicate whether the registered exit funtions
 // have been executed.
-func Done() <-chan struct{} { return exitch }
+func Done() <-chan struct{} { return Context().Done() }
 
 // Executed reports whether the registered exit funtions have been executed.
 func Executed() (executed bool) {
 	if atomic.LoadUint32(&exited) == 1 {
 		select {
-		case <-exitch:
+		case <-Done():
 			executed = true
 		default:
 		}

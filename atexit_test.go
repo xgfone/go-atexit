@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"sort"
 	"testing"
+	"time"
 )
 
 func TestExitFuncs(t *testing.T) {
@@ -60,7 +61,13 @@ func TestRegisterAndExecute(t *testing.T) {
 	RegisterWithPriority(3, func() { buf.WriteString("4") })
 	RegisterWithPriority(2, func() { buf.WriteString("5") })
 	RegisterWithPriority(1, func() { buf.WriteString("6") })
-	Execute()
+	go func() { time.Sleep(time.Second); Execute() }()
+
+	start := time.Now()
+	Wait()
+	if time.Now().Sub(start) < time.Second {
+		t.Error("wait for too few seconds")
+	}
 
 	if !Executed() {
 		t.Errorf("expect executed, but got unexecuted")
