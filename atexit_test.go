@@ -1,4 +1,4 @@
-// Copyright 2021 xgfone
+// Copyright 2021~2022 xgfone
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,29 +22,24 @@ import (
 )
 
 func TestExitFuncs(t *testing.T) {
-	exits := exitFuncs{
-		exitFunc{Name: "exit1", Prio: 0},
-		exitFunc{Name: "exit2", Prio: 3},
-		exitFunc{Name: "exit3", Prio: 3},
-		exitFunc{Name: "exit4", Prio: 2},
-		exitFunc{Name: "exit5", Prio: 1},
-		exitFunc{Name: "exit6", Prio: 2},
+	buf := bytes.NewBuffer(nil)
+	exits := priofuncs{
+		priofunc{Prio: 0, Func: func() { buf.WriteString("exit1\n") }},
+		priofunc{Prio: 3, Func: func() { buf.WriteString("exit2\n") }},
+		priofunc{Prio: 3, Func: func() { buf.WriteString("exit3\n") }},
+		priofunc{Prio: 2, Func: func() { buf.WriteString("exit4\n") }},
+		priofunc{Prio: 1, Func: func() { buf.WriteString("exit5\n") }},
+		priofunc{Prio: 2, Func: func() { buf.WriteString("exit6\n") }},
 	}
 	sort.Stable(exits)
 
-	expects := exitFuncs{
-		exitFunc{Name: "exit1"},
-		exitFunc{Name: "exit5"},
-		exitFunc{Name: "exit4"},
-		exitFunc{Name: "exit6"},
-		exitFunc{Name: "exit2"},
-		exitFunc{Name: "exit3"},
+	for i := 0; i < 6; i++ {
+		exits[i].Func()
 	}
 
-	for i := 0; i < 6; i++ {
-		if expects[i].Name != exits[i].Name {
-			t.Errorf("expect '%s', but got '%s'", expects[i].Name, exits[i].Name)
-		}
+	expect := "exit1\nexit5\nexit4\nexit6\nexit2\nexit3\n"
+	if result := buf.String(); result != expect {
+		t.Errorf("expect '%s', but got '%s'", expect, result)
 	}
 }
 

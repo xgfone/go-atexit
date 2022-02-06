@@ -1,4 +1,4 @@
-// Copyright 2021 xgfone
+// Copyright 2021~2022 xgfone
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -76,101 +76,101 @@ import (
 	"context"
 	"os"
 	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
-var (
-	exited      uint32
-	atexits     = make(exitFuncs, 0, 4)
-	ctx, cancel = context.WithCancel(context.Background())
-)
-
-type exitFunc struct {
-	Name string
+type priofunc struct {
 	Func func()
 	Prio int
 }
 
-type exitFuncs []exitFunc
+type priofuncs []priofunc
 
-func (fs exitFuncs) Len() int           { return len(fs) }
-func (fs exitFuncs) Less(i, j int) bool { return fs[i].Prio < fs[j].Prio }
-func (fs exitFuncs) Swap(i, j int)      { fs[i], fs[j] = fs[j], fs[i] }
+func (fs priofuncs) Len() int           { return len(fs) }
+func (fs priofuncs) Less(i, j int) bool { return fs[i].Prio < fs[j].Prio }
+func (fs priofuncs) Swap(i, j int)      { fs[i], fs[j] = fs[j], fs[i] }
 
-var priority = int64(99)
+var (
+	executed    uint32
+	execlock    sync.Mutex
+	priority    = int64(99)
+	executech   = make(chan struct{})
+	exitfuncs   = make(priofuncs, 0, 4)
+	ctx, cancel = context.WithCancel(context.Background())
+)
 
-// ExitFunc is used to customize the exit function.
-var ExitFunc = os.Exit
+func execute() (yes bool) {
+	if atomic.LoadUint32(&executed) == 0 {
+		execlock.Lock()
+		defer execlock.Unlock()
+		if yes = atomic.LoadUint32(&executed) == 0; yes {
+			defer atomic.StoreUint32(&executed, 1)
 
-// ExitDelay is used to wait for a delay duration before the program exits.
-var ExitDelay = time.Millisecond * 100
-
-// Wait waits until all the exit functions have finished to be executed.
-func Wait() { <-Done() }
-
-// Exit calls the exit functions in reverse and the program exits with the code.
-func Exit(code int) {
-	Execute()
-
-	if ExitDelay > 0 {
-		time.Sleep(ExitDelay)
+			cancel()
+			for _len := len(exitfuncs) - 1; _len >= 0; _len-- {
+				func(f func()) { defer recover(); f() }(exitfuncs[_len].Func)
+			}
+			close(executech)
+		}
 	}
-
-	ExitFunc(code)
+	return
 }
 
 // RegisterWithPriority registers the exit callback function with the priority,
 // which will be called when calling Exit.
 //
-// Notice: the callback function with the higher priority will be executed
-// preferentially.
+// Notice: The bigger the value, the higher the priority.
 func RegisterWithPriority(priority int, callback func()) {
 	if callback == nil {
 		panic("atexit.RegisterWithPriority: callback function is nil")
 	}
 
-	atexits = append(atexits, exitFunc{Prio: priority, Func: callback})
-	sort.Stable(atexits)
+	exitfuncs = append(exitfuncs, priofunc{Prio: priority, Func: callback})
+	sort.Stable(exitfuncs)
 }
 
 // Register is the same as RegisterWithPriority, but increase the priority
-// beginning with 100. For example,
+// starting with 100. For example,
 //   Register(callback) // ==> RegisterWithPriority(100, callback)
 //   Register(callback) // ==> RegisterWithPriority(101, callback)
 func Register(callback func()) {
 	RegisterWithPriority(int(atomic.AddInt64(&priority, 1)), callback)
 }
 
-// Execute calls all the registered exit functions in reverse.
-//
-// Notice: It only executes the exits functions once.
-func Execute() {
-	if atomic.CompareAndSwapUint32(&exited, 0, 1) {
-		for _len := len(atexits) - 1; _len >= 0; _len-- {
-			func(f func()) { defer recover(); f() }(atexits[_len].Func)
-		}
-		cancel()
-	}
-}
-
 // Context returns the context to indicate whether the registered exit funtions
-// have been executed.
+// are executed, that's, the function Execute is called.
 func Context() context.Context { return ctx }
 
-// Done returns a channel to indicate whether the registered exit funtions
-// have been executed.
+// Done is a convenient function that is equal to Context().Done().
+//
+// DEPRCATED: use Context().Done() instead.
 func Done() <-chan struct{} { return Context().Done() }
 
-// Executed reports whether the registered exit funtions have been executed.
-func Executed() (executed bool) {
-	if atomic.LoadUint32(&exited) == 1 {
-		select {
-		case <-Done():
-			executed = true
-		default:
-		}
-	}
+// Executed reports whether the registered exit funtions have finished to execute.
+func Executed() (yes bool) { return atomic.LoadUint32(&executed) == 1 }
 
-	return
+// Execute calls all the registered exit functions in reverse.
+//
+// Notice: The exit functions are executed only once.
+func Execute() { execute() }
+
+// Wait waits until all the registered exit functions have finished to execute.
+func Wait() { <-executech }
+
+// ExitFunc is used to customize the exit function.
+var ExitFunc = os.Exit
+
+// ExitDelay is used to wait for a delay duration before calling ExitFunc.
+var ExitDelay = time.Millisecond * 100
+
+// Exit calls the exit functions in reverse and the program exits with the code.
+func Exit(code int) {
+	if executed := execute(); executed {
+		if ExitDelay > 0 {
+			time.Sleep(ExitDelay)
+		}
+		ExitFunc(code)
+	}
 }
