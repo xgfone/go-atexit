@@ -76,7 +76,6 @@ import (
 	"context"
 	"os"
 	"sort"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -94,7 +93,6 @@ func (fs priofuncs) Swap(i, j int)      { fs[i], fs[j] = fs[j], fs[i] }
 
 var (
 	executed    uint32
-	execlock    sync.Mutex
 	priority    = int64(99)
 	executech   = make(chan struct{})
 	exitfuncs   = make(priofuncs, 0, 4)
@@ -102,18 +100,12 @@ var (
 )
 
 func execute() (yes bool) {
-	if atomic.LoadUint32(&executed) == 0 {
-		execlock.Lock()
-		defer execlock.Unlock()
-		if yes = atomic.LoadUint32(&executed) == 0; yes {
-			defer atomic.StoreUint32(&executed, 1)
-
-			cancel()
-			for _len := len(exitfuncs) - 1; _len >= 0; _len-- {
-				func(f func()) { defer recover(); f() }(exitfuncs[_len].Func)
-			}
-			close(executech)
+	if yes = atomic.CompareAndSwapUint32(&executed, 0, 1); yes {
+		cancel()
+		for _len := len(exitfuncs) - 1; _len >= 0; _len-- {
+			func(f func()) { defer recover(); f() }(exitfuncs[_len].Func)
 		}
+		close(executech)
 	}
 	return
 }
