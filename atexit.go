@@ -159,10 +159,9 @@ var ExitDelay = time.Millisecond * 100
 
 // Exit calls the exit functions in reverse and the program exits with the code.
 func Exit(code int) {
-	if executed := execute(); executed {
-		if ExitDelay > 0 {
-			time.Sleep(ExitDelay)
-		}
-		ExitFunc(code)
+	execute()
+	if ExitDelay > 0 {
+		time.Sleep(ExitDelay)
 	}
+	ExitFunc(code)
 }
