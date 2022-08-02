@@ -77,7 +77,6 @@ import (
 	"os"
 	"sort"
 	"sync/atomic"
-	"time"
 )
 
 type priofunc struct {
@@ -99,8 +98,8 @@ var (
 	ctx, cancel = context.WithCancel(context.Background())
 )
 
-func execute() (yes bool) {
-	if yes = atomic.CompareAndSwapUint32(&executed, 0, 1); yes {
+func execute() {
+	if atomic.CompareAndSwapUint32(&executed, 0, 1) {
 		cancel()
 		for _len := len(exitfuncs) - 1; _len >= 0; _len-- {
 			func(f func()) { defer recover(); f() }(exitfuncs[_len].Func)
@@ -136,8 +135,6 @@ func Register(callback func()) {
 func Context() context.Context { return ctx }
 
 // Done is a convenient function that is equal to Context().Done().
-//
-// DEPRCATED: use Context().Done() instead.
 func Done() <-chan struct{} { return Context().Done() }
 
 // Executed reports whether the registered exit funtions have finished to execute.
@@ -154,14 +151,8 @@ func Wait() { <-executech }
 // ExitFunc is used to customize the exit function.
 var ExitFunc = os.Exit
 
-// ExitDelay is used to wait for a delay duration before calling ExitFunc.
-var ExitDelay = time.Millisecond * 100
-
 // Exit calls the exit functions in reverse and the program exits with the code.
 func Exit(code int) {
 	execute()
-	if ExitDelay > 0 {
-		time.Sleep(ExitDelay)
-	}
 	ExitFunc(code)
 }
