@@ -137,8 +137,8 @@ func Context() context.Context { return ctx }
 // Done is a convenient function that is equal to Context().Done().
 func Done() <-chan struct{} { return Context().Done() }
 
-// Executed reports whether the registered exit funtions have finished to execute.
-func Executed() (yes bool) { return atomic.LoadUint32(&executed) == 1 }
+// Executed reports whether the registered exit funtions have been executed.
+func Executed() bool { return atomic.LoadUint32(&executed) == 1 }
 
 // Execute calls all the registered exit functions in reverse.
 //
