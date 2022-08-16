@@ -30,12 +30,12 @@
 //
 //   func init() {
 //       // Register the exit functions
-//       atexit.RegisterWithPriority(1, func() { log.Println("the program exits") })
-//       atexit.Register(func() { log.Println("do something to clean") })
+//       atexit.OnExitWithPriority(1, func() { log.Println("the program exits") })
+//       atexit.OnExit(func() { log.Println("do something to clean") })
 //
 //       // Register the init functions.
-//       atexit.RegisterInit(flag.Parse)
-//       atexit.RegisterInit(func() {
+//       atexit.OnInit(flag.Parse)
+//       atexit.OnInit(func() {
 //           if *logfile != "" {
 //               file, err := os.OpenFile(*logfile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 //               if err != nil {
@@ -132,6 +132,16 @@ func RegisterWithPriority(priority int, callback func()) {
 //   Register(callback) // ==> RegisterWithPriority(101, callback)
 func Register(callback func()) {
 	RegisterWithPriority(int(atomic.AddInt64(&priority, 1)), callback)
+}
+
+// OnExit is the alias of Register.
+func OnExit(callback func()) {
+	Register(callback)
+}
+
+// OnExitWithPriority is the alias of RegisterWithPriority.
+func OnExitWithPriority(priority int, callback func()) {
+	RegisterWithPriority(priority, callback)
 }
 
 // Context returns the context to indicate whether the registered exit funtions

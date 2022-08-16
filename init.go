@@ -41,6 +41,16 @@ func RegisterInit(init func()) {
 	RegisterInitWithPriority(int(atomic.AddInt64(&initprio, 1)), init)
 }
 
+// OnInit is the alias of RegisterInit.
+func OnInit(init func()) {
+	RegisterInit(init)
+}
+
+// OnInitWithPriority is the alias of RegisterInitWithPriority.
+func OnInitWithPriority(priority int, init func()) {
+	RegisterInitWithPriority(priority, init)
+}
+
 // Init calls all the registered init functions.
 func Init() {
 	for i, _len := 0, len(initfuncs); i < _len; i++ {
