@@ -5,7 +5,7 @@ env:
   GOPATH: /home/runner/go  # For go 1.7
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     name: Go ${{ matrix.go }}
     strategy:
       matrix:
