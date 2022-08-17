@@ -18,13 +18,13 @@ import "fmt"
 
 func ExampleInit() {
 	// Register the init functions.
-	RegisterInit(func() { fmt.Println("init1") })
-	RegisterInit(func() { fmt.Println("init2") })
-	RegisterInitWithPriority(20, func() { fmt.Println("init3") })
-	RegisterInitWithPriority(10, func() { fmt.Println("init4") })
-	RegisterInitWithPriority(10, func() { fmt.Println("init5") })
-	RegisterInitWithPriority(30, func() { fmt.Println("init6") })
-	RegisterInit(func() { fmt.Println("init7") })
+	OnInit(func() { fmt.Println("init1") })
+	OnInit(func() { fmt.Println("init2") })
+	OnInitWithPriority(20, func() { fmt.Println("init3") })
+	OnInitWithPriority(10, func() { fmt.Println("init4") })
+	OnInitWithPriority(10, func() { fmt.Println("init5") })
+	OnInitWithPriority(30, func() { fmt.Println("init6") })
+	OnInit(func() { fmt.Println("init7") })
 
 	// Call the registered init functions.
 	Init()

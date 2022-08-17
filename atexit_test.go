@@ -50,12 +50,12 @@ func TestRegisterAndExecute(t *testing.T) {
 		t.Errorf("expect unexecuted, but got executed")
 	}
 
-	RegisterWithPriority(1, func() { buf.WriteString("1") })
-	RegisterWithPriority(2, func() { buf.WriteString("2") })
-	RegisterWithPriority(3, func() { buf.WriteString("3") })
-	RegisterWithPriority(3, func() { buf.WriteString("4") })
-	RegisterWithPriority(2, func() { buf.WriteString("5") })
-	RegisterWithPriority(1, func() { buf.WriteString("6") })
+	OnExitWithPriority(1, func() { buf.WriteString("1") })
+	OnExitWithPriority(2, func() { buf.WriteString("2") })
+	OnExitWithPriority(3, func() { buf.WriteString("3") })
+	OnExitWithPriority(3, func() { buf.WriteString("4") })
+	OnExitWithPriority(2, func() { buf.WriteString("5") })
+	OnExitWithPriority(1, func() { buf.WriteString("6") })
 	go func() { time.Sleep(time.Second); Execute() }()
 
 	start := time.Now()
