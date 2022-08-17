@@ -46,7 +46,7 @@
 //               }
 //
 //               // Close the file before the program exits.
-//               atexit.RegisterWithPriority(0, func() {
+//               atexit.OnExitWithPriority(0, func() {
 //                   log.Println("close the log file")
 //                   file.Close()
 //               })
@@ -113,35 +113,25 @@ func execute() {
 	return
 }
 
-// RegisterWithPriority registers the exit callback function with the priority,
+// OnExitWithPriority registers the exit callback function with the priority,
 // which will be called when calling Exit.
 //
 // Notice: The bigger the value, the higher the priority.
-func RegisterWithPriority(priority int, callback func()) {
+func OnExitWithPriority(priority int, callback func()) {
 	if callback == nil {
-		panic("atexit.RegisterWithPriority: callback function is nil")
+		panic("atexit.OnExitWithPriority: callback function is nil")
 	}
 
 	exitfuncs = append(exitfuncs, priofunc{Prio: priority, Func: callback})
 	sort.Stable(exitfuncs)
 }
 
-// Register is the same as RegisterWithPriority, but increase the priority
+// OnExit is the same as OnExitWithPriority, but increase the priority
 // starting with 100. For example,
-//   Register(callback) // ==> RegisterWithPriority(100, callback)
-//   Register(callback) // ==> RegisterWithPriority(101, callback)
-func Register(callback func()) {
-	RegisterWithPriority(int(atomic.AddInt64(&priority, 1)), callback)
-}
-
-// OnExit is the alias of Register.
+//   OnExit(callback) // ==> OnExitWithPriority(100, callback)
+//   OnExit(callback) // ==> OnExitWithPriority(101, callback)
 func OnExit(callback func()) {
-	Register(callback)
-}
-
-// OnExitWithPriority is the alias of RegisterWithPriority.
-func OnExitWithPriority(priority int, callback func()) {
-	RegisterWithPriority(priority, callback)
+	OnExitWithPriority(int(atomic.AddInt64(&priority, 1)), callback)
 }
 
 // Context returns the context to indicate whether the registered exit funtions

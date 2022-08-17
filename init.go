@@ -24,31 +24,21 @@ var (
 	initfuncs = make(priofuncs, 0, 4)
 )
 
-// RegisterInitWithPriority registers the init function with the priority,
+// OnInitWithPriority registers the init function with the priority,
 // which will be called when calling Init.
 //
 // Notice: The smaller the value, the higher the priority.
-func RegisterInitWithPriority(priority int, init func()) {
+func OnInitWithPriority(priority int, init func()) {
 	initfuncs = append(initfuncs, priofunc{Prio: priority, Func: init})
 	sort.Stable(initfuncs)
 }
 
-// RegisterInit is the same as RegisterInitWithPriority, but increase the priority
+// OnInit is the same as OnInitWithPriority, but increase the priority
 // starting with 100. For example,
-//   Register(init) // ==> RegisterInitWithPriority(100, init)
-//   Register(init) // ==> RegisterInitWithPriority(101, init)
-func RegisterInit(init func()) {
-	RegisterInitWithPriority(int(atomic.AddInt64(&initprio, 1)), init)
-}
-
-// OnInit is the alias of RegisterInit.
+//   Register(init) // ==> OnInitWithPriority(100, init)
+//   Register(init) // ==> OnInitWithPriority(101, init)
 func OnInit(init func()) {
-	RegisterInit(init)
-}
-
-// OnInitWithPriority is the alias of RegisterInitWithPriority.
-func OnInitWithPriority(priority int, init func()) {
-	RegisterInitWithPriority(priority, init)
+	OnInitWithPriority(int(atomic.AddInt64(&initprio, 1)), init)
 }
 
 // Init calls all the registered init functions.

@@ -39,7 +39,7 @@ func init() {
 			}
 
 			// Close the file before the program exits.
-			atexit.RegisterWithPriority(0, func() {
+			atexit.OnExitWithPriority(0, func() {
 				log.Println("close the log file")
 				file.Close()
 			})
