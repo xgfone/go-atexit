@@ -81,6 +81,7 @@ import (
 	"os"
 	"sort"
 	"sync/atomic"
+	"time"
 )
 
 type priofunc struct {
@@ -150,7 +151,7 @@ func Executed() bool { return atomic.LoadUint32(&executed) == 1 }
 func Execute() { execute() }
 
 // Wait waits until all the registered exit functions have finished to execute.
-func Wait() { <-executech }
+func Wait() { <-executech; time.Sleep(time.Millisecond * 10) }
 
 // ExitFunc is used to customize the exit function.
 var ExitFunc = os.Exit
