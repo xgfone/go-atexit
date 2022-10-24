@@ -14,7 +14,33 @@
 
 package atexit
 
-import "fmt"
+import (
+	"fmt"
+	"testing"
+)
+
+func testRegisterInit(f func()) {
+	f()
+}
+
+func TestFuncFileLine(t *testing.T) {
+	OnInit(func() {})
+	OnInit(func() {})
+	testRegisterInit(func() {
+		OnInit(func() {})
+	})
+
+	funcs := GetAllInitFuncs()
+	if funcs[0].Line != 27 {
+		t.Errorf("0: expect line %d, but got %d", 27, funcs[0].Line)
+	}
+	if funcs[1].Line != 28 {
+		t.Errorf("1: expect line %d, but got %d", 28, funcs[0].Line)
+	}
+	if funcs[2].Line != 30 {
+		t.Errorf("2: expect line %d, but got %d", 30, funcs[0].Line)
+	}
+}
 
 func ExampleInit() {
 	// Register the init functions.

@@ -21,29 +21,6 @@ import (
 	"time"
 )
 
-func testRegisterInit(f func()) {
-	f()
-}
-
-func TestFuncFileLine(t *testing.T) {
-	OnInit(func() {})
-	OnInit(func() {})
-	testRegisterInit(func() {
-		OnInit(func() {})
-	})
-
-	funcs := GetAllInitFuncs()
-	if funcs[0].Line != 29 {
-		t.Errorf("0: expect line %d, but got %d", 29, funcs[0].Line)
-	}
-	if funcs[1].Line != 30 {
-		t.Errorf("1: expect line %d, but got %d", 30, funcs[0].Line)
-	}
-	if funcs[2].Line != 32 {
-		t.Errorf("2: expect line %d, but got %d", 32, funcs[0].Line)
-	}
-}
-
 func TestExitFuncs(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	exits := funcs{
