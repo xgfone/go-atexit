@@ -16,92 +16,114 @@
 //
 // Example
 //
-//   package main
+//	package main
 //
-//   import (
-//       "flag"
-//       "log"
-//       "os"
+//	import (
+//	    "flag"
+//	    "log"
+//	    "os"
 //
-//       "github.com/xgfone/go-atexit"
-//   )
+//	    "github.com/xgfone/go-atexit"
+//	)
 //
-//   var logfile = flag.String("logfile", "", "the log file path")
+//	var logfile = flag.String("logfile", "", "the log file path")
 //
-//   func init() {
-//       // Register the exit functions
-//       atexit.OnExitWithPriority(1, func() { log.Println("the program exits") })
-//       atexit.OnExit(func() { log.Println("do something to clean") })
+//	func init() {
+//	    // Register the exit functions
+//	    atexit.OnExitWithPriority(1, func() { log.Println("the program exits") })
+//	    atexit.OnExit(func() { log.Println("do something to clean") })
 //
-//       // Register the init functions.
-//       atexit.OnInit(flag.Parse)
-//       atexit.OnInit(func() {
-//           if *logfile != "" {
-//               file, err := os.OpenFile(*logfile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-//               if err != nil {
-//                   log.Println(err)
-//                   atexit.Exit(1)
-//               } else {
-//                   log.SetOutput(file)
-//               }
+//	    // Register the init functions.
+//	    atexit.OnInit(flag.Parse)
+//	    atexit.OnInit(func() {
+//	        if *logfile != "" {
+//	            file, err := os.OpenFile(*logfile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+//	            if err != nil {
+//	                log.Println(err)
+//	                atexit.Exit(1)
+//	            } else {
+//	                log.SetOutput(file)
+//	            }
 //
-//               // Close the file before the program exits.
-//               atexit.OnExitWithPriority(0, func() {
-//                   log.Println("close the log file")
-//                   file.Close()
-//               })
-//           }
-//       })
-//   }
+//	            // Close the file before the program exits.
+//	            atexit.OnExitWithPriority(0, func() {
+//	                log.Println("close the log file")
+//	                file.Close()
+//	            })
+//	        }
+//	    })
+//	}
 //
-//   func main() {
-//       atexit.Init()
+//	func main() {
+//	    atexit.Init()
 //
-//       log.Println("do jobs ...")
+//	    log.Println("do jobs ...")
 //
-//       atexit.Exit(0)
+//	    atexit.Exit(0)
 //
-//       // $ go run main.go
-//       // 2021/05/29 08:29:14 do jobs ...
-//       // 2021/05/29 08:29:14 do something to clean
-//       // 2021/05/29 08:29:14 the program exits
-//       //
-//       // $ go run main.go -logfile test.log
-//       // $ cat test.log
-//       // 2021/05/29 08:29:19 do jobs ...
-//       // 2021/05/29 08:29:19 do something to clean
-//       // 2021/05/29 08:29:19 the program exits
-//       // 2021/05/29 08:29:19 close the log file
-//   }
-//
+//	    // $ go run main.go
+//	    // 2021/05/29 08:29:14 do jobs ...
+//	    // 2021/05/29 08:29:14 do something to clean
+//	    // 2021/05/29 08:29:14 the program exits
+//	    //
+//	    // $ go run main.go -logfile test.log
+//	    // $ cat test.log
+//	    // 2021/05/29 08:29:19 do jobs ...
+//	    // 2021/05/29 08:29:19 do something to clean
+//	    // 2021/05/29 08:29:19 the program exits
+//	    // 2021/05/29 08:29:19 close the log file
+//	}
 package atexit
 
 import (
 	"context"
 	"os"
+	"runtime"
 	"sort"
+	"strings"
 	"sync/atomic"
 	"time"
 )
 
-type priofunc struct {
+// Func represents a init or exit function.
+type Func struct {
 	Func func()
 	Prio int
+	Line int
+	File string
 }
 
-type priofuncs []priofunc
+type funcs []Func
 
-func (fs priofuncs) Len() int           { return len(fs) }
-func (fs priofuncs) Less(i, j int) bool { return fs[i].Prio < fs[j].Prio }
-func (fs priofuncs) Swap(i, j int)      { fs[i], fs[j] = fs[j], fs[i] }
+func (fs funcs) Len() int           { return len(fs) }
+func (fs funcs) Less(i, j int) bool { return fs[i].Prio < fs[j].Prio }
+func (fs funcs) Swap(i, j int)      { fs[i], fs[j] = fs[j], fs[i] }
 
 var (
 	executed    uint32
 	priority    = int64(99)
 	executech   = make(chan struct{})
-	exitfuncs   = make(priofuncs, 0, 4)
+	exitfuncs   = make(funcs, 0, 4)
 	ctx, cancel = context.WithCancel(context.Background())
 )
+
+var trimPrefixes = []string{"/pkg/mod/", "/src/"}
+
+func getFileLine(skip int) (file string, line int) {
+	_, file, line, ok := runtime.Caller(skip)
+	if ok {
+		for _, mark := range trimPrefixes {
+			if index := strings.Index(file, mark); index > -1 {
+				file = file[index+len(mark):]
+				break
+			}
+		}
+	} else {
+		file = "??"
+	}
+
+	return
+}
 
 func execute() {
 	if atomic.CompareAndSwapUint32(&executed, 0, 1) {
@@ -114,25 +136,41 @@ func execute() {
 	return
 }
 
+func registerExitCallback(priority int, callback func()) {
+	if callback == nil {
+		panic("atexit.OnExitWithPriority: callback function is nil")
+	}
+
+	file, line := getFileLine(3)
+	pf := Func{Prio: priority, Func: callback, Line: line, File: file}
+	exitfuncs = append(exitfuncs, pf)
+	sort.Stable(exitfuncs)
+}
+
+// GetAllExitFuncs returns all the registered exit functions.
+func GetAllExitFuncs() []Func {
+	funcs := make(funcs, len(exitfuncs))
+	for i, f := range exitfuncs {
+		funcs[i] = f
+	}
+	return funcs
+}
+
 // OnExitWithPriority registers the exit callback function with the priority,
 // which will be called when calling Exit.
 //
 // Notice: The bigger the value, the higher the priority.
 func OnExitWithPriority(priority int, callback func()) {
-	if callback == nil {
-		panic("atexit.OnExitWithPriority: callback function is nil")
-	}
-
-	exitfuncs = append(exitfuncs, priofunc{Prio: priority, Func: callback})
-	sort.Stable(exitfuncs)
+	registerExitCallback(priority, callback)
 }
 
 // OnExit is the same as OnExitWithPriority, but increase the priority
 // starting with 100. For example,
-//   OnExit(callback) // ==> OnExitWithPriority(100, callback)
-//   OnExit(callback) // ==> OnExitWithPriority(101, callback)
+//
+//	OnExit(callback) // ==> OnExitWithPriority(100, callback)
+//	OnExit(callback) // ==> OnExitWithPriority(101, callback)
 func OnExit(callback func()) {
-	OnExitWithPriority(int(atomic.AddInt64(&priority, 1)), callback)
+	registerExitCallback(int(atomic.AddInt64(&priority, 1)), callback)
 }
 
 // Context returns the context to indicate whether the registered exit funtions
