@@ -149,11 +149,7 @@ func registerExitCallback(priority int, callback func()) {
 
 // GetAllExitFuncs returns all the registered exit functions.
 func GetAllExitFuncs() []Func {
-	funcs := make(funcs, len(exitfuncs))
-	for i, f := range exitfuncs {
-		funcs[i] = f
-	}
-	return funcs
+	return append([]Func{}, exitfuncs...)
 }
 
 // OnExitWithPriority registers the exit callback function with the priority,

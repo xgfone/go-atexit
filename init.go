@@ -37,11 +37,7 @@ func registerInitCallback(priority int, init func()) {
 
 // GetAllInitFuncs returns all the registered init functions.
 func GetAllInitFuncs() []Func {
-	funcs := make(funcs, len(initfuncs))
-	for i, f := range initfuncs {
-		funcs[i] = f
-	}
-	return funcs
+	return append([]Func{}, initfuncs...)
 }
 
 // OnInitWithPriority registers the init function with the priority,
