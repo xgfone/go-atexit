@@ -77,9 +77,11 @@ package atexit
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -91,6 +93,25 @@ type Func struct {
 	Prio int
 	Line int
 	File string
+}
+
+var debug bool
+
+func init() { debug, _ = strconv.ParseBool(os.Getenv("DEBUG")) }
+
+func (f Func) print(ftype string) {
+	if debug {
+		fmt.Printf("run %s func: file=%s, line=%d\n", ftype, f.File, f.Line)
+	}
+}
+
+func (f Func) runInit() { f.print("init"); f.Func() }
+func (f Func) runExit() { defer f.wrapPanic(); f.print("exit"); f.Func() }
+func (f Func) wrapPanic() {
+	if r := recover(); r != nil {
+		const msg = "exit func panics: file=%s, line=%d, panic=%v\n"
+		fmt.Fprintf(os.Stderr, msg, f.File, f.Line, r)
+	}
 }
 
 type funcs []Func
@@ -129,7 +150,7 @@ func execute() {
 	if atomic.CompareAndSwapUint32(&executed, 0, 1) {
 		cancel()
 		for _len := len(exitfuncs) - 1; _len >= 0; _len-- {
-			func(f func()) { defer recover(); f() }(exitfuncs[_len].Func)
+			exitfuncs[_len].runExit()
 		}
 		close(executech)
 	}
@@ -180,6 +201,9 @@ func Done() <-chan struct{} { return Context().Done() }
 func Executed() bool { return atomic.LoadUint32(&executed) == 1 }
 
 // Execute calls all the registered exit functions in reverse.
+//
+// If setting the environment variable "DEBUG" to a true bool value
+// parsed by strconv.ParseBool, it will print the debug log to stdout.
 //
 // Notice: The exit functions are executed only once.
 func Execute() { execute() }

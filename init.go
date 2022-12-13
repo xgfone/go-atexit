@@ -58,8 +58,11 @@ func OnInit(init func()) {
 }
 
 // Init calls all the registered init functions.
+//
+// If setting the environment variable "DEBUG" to a true bool value
+// parsed by strconv.ParseBool, it will print the debug log to stdout.
 func Init() {
 	for i, _len := 0, len(initfuncs); i < _len; i++ {
-		initfuncs[i].Func()
+		initfuncs[i].runInit()
 	}
 }
