@@ -60,7 +60,7 @@ func TestRegisterAndExecute(t *testing.T) {
 
 	start := time.Now()
 	Wait()
-	if time.Now().Sub(start) < time.Second {
+	if time.Since(start) < time.Second {
 		t.Error("wait for too few seconds")
 	}
 

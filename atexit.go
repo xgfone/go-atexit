@@ -97,6 +97,11 @@ type Func struct {
 
 var debug bool
 
+// SetDebug sets the debug mode.
+//
+// Default: parse env var "DEBUG" as bool.
+func SetDebug(b bool) { debug = b }
+
 func init() { debug, _ = strconv.ParseBool(os.Getenv("DEBUG")) }
 
 func (f Func) print(ftype string) {
