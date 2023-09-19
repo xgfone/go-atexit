@@ -1,6 +1,6 @@
 # Go AtExit [![Build Status](https://github.com/xgfone/go-atexit/actions/workflows/go.yml/badge.svg)](https://github.com/xgfone/go-atexit/actions/workflows/go.yml) [![GoDoc](https://pkg.go.dev/badge/github.com/xgfone/go-atexit)](https://pkg.go.dev/github.com/xgfone/go-atexit) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://raw.githubusercontent.com/xgfone/go-atexit/master/LICENSE)
 
-The package `atexit` is used to manage the exit functions of the program. Support `Go1.7+`.
+The package `atexit` is used to manage the exit functions of the program. Support `Go1.8+`.
 
 ## Install
 ```shell
