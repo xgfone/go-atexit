@@ -1,4 +1,4 @@
-// Copyright 2022 xgfone
+// Copyright 2023 xgfone
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,25 +14,16 @@
 
 package atexit
 
-import (
-	"sort"
-	"sync/atomic"
-)
+import "sync/atomic"
 
 var (
 	initprio  = int64(99)
-	initfuncs = make(funcs, 0, 4)
+	initfuncs = make([]Func, 0, 4)
 )
 
 func registerInitCallback(priority int, init func()) {
-	if init == nil {
-		panic("atexit.OnInitWithPriority: init function is nil")
-	}
-
-	file, line := getFileLine(3)
-	pf := Func{Prio: priority, Func: init, Line: line, File: file}
-	initfuncs = append(initfuncs, pf)
-	sort.Stable(initfuncs)
+	const prefix = "atexit.OnInitWithPriority: init"
+	initfuncs = registerCallback(initfuncs, prefix, 2, priority, init)
 }
 
 // GetAllInitFuncs returns all the registered init functions.
@@ -61,8 +52,4 @@ func OnInit(init func()) {
 //
 // If setting the environment variable "DEBUG" to a true bool value
 // parsed by strconv.ParseBool, it will print the debug log to stdout.
-func Init() {
-	for i, _len := 0, len(initfuncs); i < _len; i++ {
-		initfuncs[i].runInit()
-	}
-}
+func Init() { runInits(initfuncs) }
