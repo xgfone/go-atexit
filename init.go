@@ -51,8 +51,8 @@ func OnInitWithPriority(priority int, init func()) {
 // OnInit is the same as OnInitWithPriority, but increase the priority
 // starting with 100. For example,
 //
-//	Register(init) // ==> OnInitWithPriority(100, init)
-//	Register(init) // ==> OnInitWithPriority(101, init)
+//	OnInit(init) // ==> OnInitWithPriority(100, init)
+//	OnInit(init) // ==> OnInitWithPriority(101, init)
 func OnInit(init func()) {
 	registerInitCallback(int(atomic.AddInt64(&initprio, 1)), init)
 }
