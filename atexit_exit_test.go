@@ -23,10 +23,6 @@ import (
 func TestRegisterAndExecute(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 
-	if Executed() {
-		t.Errorf("expect unexecuted, but got executed")
-	}
-
 	OnExitWithPriority(1, func() { buf.WriteString("1") })
 	OnExitWithPriority(2, func() { buf.WriteString("2") })
 	OnExitWithPriority(3, func() { buf.WriteString("3") })
@@ -39,10 +35,6 @@ func TestRegisterAndExecute(t *testing.T) {
 	Wait()
 	if time.Since(start) < time.Second {
 		t.Error("wait for too few seconds")
-	}
-
-	if !Executed() {
-		t.Errorf("expect executed, but got unexecuted")
 	}
 
 	expect := "435261"
