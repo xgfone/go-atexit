@@ -72,11 +72,6 @@ func Context() context.Context { return ctx }
 func Done() <-chan struct{} { return Context().Done() }
 
 // Execute calls all the registered exit functions in reverse.
-//
-// If setting the environment variable "DEBUG" to a true bool value
-// parsed by strconv.ParseBool, it will print the debug log to stdout.
-//
-// Notice: The exit functions are executed only once.
 func Execute() { execute() }
 
 // Wait waits until all the registered exit functions have finished to execute.
@@ -88,5 +83,6 @@ var ExitFunc = os.Exit
 // Exit calls the exit functions in reverse and the program exits with the code.
 func Exit(code int) {
 	execute()
+	Wait()
 	ExitFunc(code)
 }
